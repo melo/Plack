@@ -187,7 +187,17 @@ sub _handle_response {
     if (defined $res->[2]) {
         my $err;
         my $done;
-        {
+        if (Plack::Util::is_real_fh($res->[2])) {
+            eval { require Sys::Sendfile };
+            unless ($@) {
+              $done = Sys::Sendfile::sendfile($conn, $res->[2]);
+              unless (defined $done) {
+                  $done = 0;
+                  $err = $!;
+              }
+            }
+        }
+        unless (defined $done) {
             local $@;
             eval {
                 Plack::Util::foreach(
